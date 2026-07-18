@@ -103,6 +103,8 @@ export interface Account {
   annualFee?: number;
   /** Optional custom expected nominal geometric return override. */
   customExpectedReturn?: number;
+  /** Distinguishes an investable account from illiquid home equity. */
+  assetType?: 'portfolio' | 'homeEquity';
 }
 
 export interface Contribution {

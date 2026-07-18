@@ -3,10 +3,12 @@ import { Disclaimer, Panel, StatCard } from '../components/ui';
 import { formatCompactCurrency, formatCurrency, formatPercent } from '../utils/format';
 import { sampleScenarios } from '../models/scenarios';
 import { READINESS_META } from './readiness';
+import { SUCCESS_TARGET, useTargetSpending } from '../hooks/useTargetSpending';
 
 export function OverviewPage({ onNavigate }: { onNavigate: (r: string) => void }): JSX.Element {
   const { scenario, results, loadScenario, resetDefault } = useScenario();
   const meta = results ? READINESS_META[results.readiness] : undefined;
+  const targetSpending = useTargetSpending(scenario);
 
   return (
     <div>
@@ -26,19 +28,20 @@ export function OverviewPage({ onNavigate }: { onNavigate: (r: string) => void }
 
       <div className="grid grid-4" style={{ marginBottom: 18 }}>
         <StatCard
-          label="Desired monthly (after-tax)"
-          value={formatCurrency(scenario.spending.desiredMonthly, scenario.household.baseCurrency)}
-          tip="The central planning input: the monthly amount you want to spend, in today's dollars."
-        />
-        <StatCard
-          label="Median sustainable monthly"
-          value={results ? formatCurrency(results.metrics.medianLifetimeSpending / Math.max(1, spendingYears(scenario)) / 12, scenario.household.baseCurrency) : '—'}
-          tip="Median of average yearly spending actually delivered across all simulated futures, per month."
-        />
-        <StatCard
-          label="P(desired funded)"
+          label="Chance of success"
           value={results ? formatPercent(results.metrics.desiredFunded) : '—'}
-          tip="Share of simulated futures in which desired spending is fully funded every year. A probability, not a guarantee."
+          sub={results ? (results.metrics.desiredFunded >= SUCCESS_TARGET ? 'At or above the 85% planning target' : 'Below the 85% planning target') : undefined}
+          tip="The share of simulations that fully fund desired spending every retirement year. 85% is the planning target used by this calculator, not a guarantee."
+        />
+        <StatCard
+          label="Monthly spending at 85%"
+          value={targetSpending.monthly === null ? (targetSpending.solving ? 'Calculating…' : '—') : formatCurrency(targetSpending.monthly, scenario.household.baseCurrency)}
+          tip="Estimated maximum desired monthly spending that reaches an 85% chance of fully funding the target in a reduced-trial solver run."
+        />
+        <StatCard
+          label="Desired monthly spending"
+          value={formatCurrency(scenario.spending.desiredMonthly, scenario.household.baseCurrency)}
+          tip="Your target lifestyle spending in today's dollars."
         />
         <StatCard
           label="P(essential funded)"
@@ -85,10 +88,4 @@ function NextCard({ title, body, onClick }: { title: string; body: string; onCli
       <div className="muted small">{body}</div>
     </button>
   );
-}
-
-function spendingYears(scenario: ReturnType<typeof useScenario>['scenario']): number {
-  const ret = scenario.household.people[0]?.retirementAge ?? 65;
-  const end = scenario.household.planningEndAge ?? 100;
-  return Math.max(1, end - ret);
 }

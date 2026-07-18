@@ -23,6 +23,7 @@ export const DEFAULT_ASSET_CLASSES: AssetClassAssumption[] = [
   { id: 'shortTermBonds', name: 'Short-Term Bonds', arithmeticReturn: 0.035, volatility: 0.03, yield: 0.034, expenseRatio: 0.0005, inflationSensitivity: 0.1 },
   { id: 'cash', name: 'Cash', arithmeticReturn: 0.028, volatility: 0.01, yield: 0.028, expenseRatio: 0.0002, inflationSensitivity: 0.2 },
   { id: 'reits', name: 'Real Estate (REITs)', arithmeticReturn: 0.078, volatility: 0.19, yield: 0.038, expenseRatio: 0.0010, inflationSensitivity: 0.5 },
+  { id: 'homeEquity', name: 'Home Equity', arithmeticReturn: 0.035, volatility: 0.10, yield: 0, expenseRatio: 0, inflationSensitivity: 0.8 },
   { id: 'gold', name: 'Gold', arithmeticReturn: 0.045, volatility: 0.17, yield: 0.0, expenseRatio: 0.0025, inflationSensitivity: 0.6 },
   { id: 'alternatives', name: 'Alternatives', arithmeticReturn: 0.060, volatility: 0.14, yield: 0.01, expenseRatio: 0.0090, inflationSensitivity: 0.2 },
 ];
