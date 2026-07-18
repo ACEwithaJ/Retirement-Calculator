@@ -1,0 +1,20 @@
+/** Plain-language glossary for nontechnical users. */
+export const GLOSSARY: Array<{ term: string; definition: string }> = [
+  { term: 'Arithmetic return', definition: 'The simple average of yearly returns. Higher than the compound (geometric) return because of volatility.' },
+  { term: 'Geometric return', definition: "The compound annual growth rate — what actually builds wealth over time. Lower than the arithmetic return by roughly half the variance." },
+  { term: 'Real vs. nominal', definition: "Real values are adjusted for inflation (today's purchasing power); nominal values are not. This tool reports spending and balances in real dollars." },
+  { term: 'Monte Carlo simulation', definition: 'Running thousands of randomized futures to estimate the range and probability of outcomes, rather than a single point forecast.' },
+  { term: 'Bootstrap', definition: 'Building simulated futures by resampling actual historical years, optionally in multi-year blocks to keep some real sequencing.' },
+  { term: 'Sequence-of-returns risk', definition: 'The danger that poor returns early in retirement — while withdrawals are taken from a large balance — permanently damage the plan, even if average returns are fine.' },
+  { term: 'Success probability', definition: 'The share of simulated futures meeting a goal (e.g. funding desired spending every year). A probability under assumptions, not a guarantee.' },
+  { term: 'Withdrawal rate', definition: "The percentage of the portfolio withdrawn in a year. The '4% rule' is a starting heuristic, not a universal guarantee." },
+  { term: 'Guardrails (Guyton-Klinger)', definition: 'Rules that cut spending after the withdrawal rate climbs too high (bad markets) and raise it when the rate falls too low (good markets).' },
+  { term: 'VPW (Variable Percentage Withdrawal)', definition: 'A rule where the withdrawal percentage rises with age, spending the portfolio down by plan-end. It never technically runs out, but spending can swing.' },
+  { term: 'RMD method', definition: 'Withdrawing the portfolio divided by a life-expectancy factor each year, similar to Required Minimum Distributions.' },
+  { term: 'Funded ratio', definition: 'Assets divided by the present value of future net withdrawals. Above 1 suggests the plan is over-funded — but it depends on the discount rate chosen.' },
+  { term: 'Essential vs. discretionary spending', definition: 'Essential is what you must cover (housing, food, healthcare); discretionary is flexible (travel, gifts). Guaranteed income is applied to essentials first.' },
+  { term: 'Cost basis', definition: 'The original amount invested in a taxable account. Only the gain above basis is taxed when you sell.' },
+  { term: 'AUM fee', definition: "An advisor fee charged as a percentage of assets under management. Compounds over time and can be a large lifetime cost." },
+  { term: 'Glidepath', definition: 'A planned change in the stock/bond mix over time — for example, holding more bonds near retirement, then rising equity afterward.' },
+  { term: 'Legacy', definition: 'Wealth remaining at the end of the plan that can be left to heirs or charity.' },
+];
