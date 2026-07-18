@@ -8,12 +8,14 @@ import { formatCompactCurrency, formatCurrency, formatPercent } from '../utils/f
 import { solveSpendingCurve } from '../simulation/solver';
 import { resultsToCSV, downloadText } from '../utils/export';
 import { exportScenarioJSON } from '../models/store';
+import { SUCCESS_TARGET, useTargetSpending } from '../hooks/useTargetSpending';
 
 export function ResultsPage(): JSX.Element {
   const { scenario, results, running, runFull } = useScenario();
   const [curve, setCurve] = useState<Array<{ probability: number; monthlySpending: number }>>([]);
   const [solving, setSolving] = useState(false);
   const cur = scenario.household.baseCurrency;
+  const targetSpending = useTargetSpending(scenario);
 
   const runSolver = (): void => {
     setSolving(true);
@@ -72,10 +74,10 @@ export function ResultsPage(): JSX.Element {
       )}
 
       <div className="grid grid-4">
-        <StatCard label="Desired monthly (after-tax)" value={formatCurrency(scenario.spending.desiredMonthly, cur)} />
+        <StatCard label="Chance of success" value={formatPercent(results.metrics.desiredFunded)} sub={results.metrics.desiredFunded >= SUCCESS_TARGET ? 'Meets the 85% target' : 'Below the 85% target'} tip="Chance that desired spending is fully funded in every retirement year." />
+        <StatCard label="Monthly spending at 85%" value={targetSpending.monthly === null ? (targetSpending.solving ? 'Calculating…' : '—') : formatCurrency(targetSpending.monthly, cur)} />
+        <StatCard label="Desired monthly" value={formatCurrency(scenario.spending.desiredMonthly, cur)} />
         <StatCard label="P(essential funded)" value={formatPercent(results.metrics.essentialFunded)} tip="Probability the essential floor is covered every year." />
-        <StatCard label="P(desired funded)" value={formatPercent(results.metrics.desiredFunded)} tip="Probability desired spending is fully funded every year." />
-        <StatCard label="P(portfolio positive)" value={formatPercent(results.metrics.portfolioSurvival)} />
       </div>
       <div className="grid grid-4" style={{ marginTop: 14 }}>
         <StatCard label="Median ending wealth" value={formatCompactCurrency(results.metrics.medianEndingWealth)} />

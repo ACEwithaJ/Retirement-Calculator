@@ -44,6 +44,7 @@ function initAccounts(scenario: Scenario): AccountState[] {
         ? 1
         : 0,
     availabilityAge: a.availabilityAge,
+    assetType: a.assetType ?? 'portfolio',
   }));
 }
 
@@ -285,7 +286,10 @@ export function simulatePath(
     baseAlloc[s.id] = accountBaseAllocation(scenario, s.id);
     holdings[s.id] = buildHoldings(s.value, baseAlloc[s.id]);
   }
-  const classIds = scenario.assumptions.assetClasses.map((a) => a.id);
+  const hasHomeEquity = scenario.accounts.some((a) => a.assetType === 'homeEquity');
+  const classIds = scenario.assumptions.assetClasses
+    .filter((a) => a.id !== 'homeEquity' || hasHomeEquity)
+    .map((a) => a.id);
   const rebalanceMode = scenario.allocationPolicy.rebalance;
   const rebalanceBand = scenario.allocationPolicy.rebalanceThreshold ?? 0.05;
   const glidepathActive = scenario.allocationPolicy.glidepath !== 'fixed';
@@ -435,12 +439,12 @@ export function simulatePath(
     }
 
     // Fees on the post-withdrawal balance (real).
-    const postWithdrawal = states.reduce((a, s) => a + s.value, 0);
-    const feeThisYear = postWithdrawal > 0 ? totalAnnualFee(postWithdrawal, scenario.fees) : 0;
+    const feeablePortfolio = states.filter((s) => s.assetType !== 'homeEquity').reduce((a, s) => a + s.value, 0);
+    const feeThisYear = feeablePortfolio > 0 ? totalAnnualFee(feeablePortfolio, scenario.fees) : 0;
     if (feeThisYear > 0) {
       lifetimeFees += feeThisYear;
-      const factor = Math.max(0, 1 - feeThisYear / postWithdrawal);
-      for (const s of states) s.value *= factor;
+      const factor = Math.max(0, 1 - feeThisYear / feeablePortfolio);
+      for (const s of states) if (s.assetType !== 'homeEquity') s.value *= factor;
     }
 
     // Reconcile holdings to each account's post-cash-flow value, then apply the

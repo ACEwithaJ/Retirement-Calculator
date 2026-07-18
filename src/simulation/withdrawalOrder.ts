@@ -8,6 +8,7 @@ export interface AccountState {
   /** Fraction of value that is cost basis (taxable/cash only). */
   basisFraction: number;
   availabilityAge?: number;
+  assetType?: Account['assetType'];
 }
 
 export interface WithdrawalComposition {
@@ -28,7 +29,8 @@ export function availableAccounts(
   age: number,
 ): AccountState[] {
   return states.filter(
-    (s) => s.availabilityAge === undefined || age >= s.availabilityAge,
+    (s) => (s.availabilityAge === undefined || age >= s.availabilityAge)
+      && (s.assetType !== 'homeEquity' || s.availabilityAge !== undefined),
   );
 }
 
