@@ -13,9 +13,12 @@ export interface ContributionProjection {
 }
 
 /**
- * Deterministic accumulation illustration in today's dollars. Contributions
- * are added at mid-year and each account uses its own allocation when present.
- * Home equity is excluded because it is not an ongoing portfolio contribution.
+ * Deterministic accumulation illustration in today's dollars. Each year the
+ * full annual contribution is added at the START of the year and then earns the
+ * year's real return (beginning-of-year / annuity-due timing), matching the
+ * Monte Carlo engine's accumulation convention so the two stay consistent. Each
+ * account uses its own allocation when present. Home equity is excluded because
+ * it is not an ongoing portfolio contribution.
  */
 export function projectContributions(scenario: Scenario): ContributionProjection {
   const currentAge = scenario.household.people[0]?.currentAge ?? 0;

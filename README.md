@@ -134,6 +134,7 @@ decoupled from the UI and can be used as a library.
 - [`docs/EXTENDING.md`](docs/EXTENDING.md) — how to add strategies, countries, and asset classes.
 - [`docs/UPDATING_DATA.md`](docs/UPDATING_DATA.md) — how to update the historical dataset.
 - [`docs/DISCLAIMER.md`](docs/DISCLAIMER.md) — tax and international-model disclaimer.
+- [`docs/validation/`](docs/validation/) — independent validation report, benchmark results, external-calculator comparison, assumptions & data sources, defect log, and model card.
 
 ---
 
