@@ -53,7 +53,10 @@ Per year, retirement branch:
    withdrawal across accounts and taxing it jointly with income. Nominalizes for bracket indexing,
    then converts tax back to real.
 5. Fees applied to the post-withdrawal balance via `totalAnnualFee`.
-6. Real return applied to every account (annually rebalanced model).
+6. Per-asset-class real returns applied to each account's holdings, then the
+   account is rebalanced per the policy (annual / quarterly / threshold / none)
+   via `rebalance.ts`. Tracking holdings per class is what makes rebalancing
+   modes and per-account allocations affect outcomes distinctly.
 7. Record `YearRecord`.
 
 Accumulation branch adds contributions and applies returns.

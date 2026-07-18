@@ -37,7 +37,7 @@ export function AllocationPage(): JSX.Element {
               { value: 'threshold', label: 'Threshold band' },
               { value: 'none', label: 'No rebalancing' },
             ]}
-            tip="The engine models annual rebalancing to the target weights; other modes are informational in this version."
+            tip="The engine now tracks per-asset-class holdings, so annual/quarterly rebalance to target, threshold rebalances only outside the band, and 'none' lets weights drift with returns — each producing distinct outcomes."
           />
         </div>
 

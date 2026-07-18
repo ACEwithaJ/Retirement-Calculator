@@ -60,12 +60,17 @@ export class SeededRandom {
 }
 
 /**
- * Cholesky decomposition of a symmetric positive-definite matrix.
- * Returns lower-triangular L such that L * L^T = matrix.
- * Falls back to the identity's diagonal if the matrix is not PD.
+ * Robust Cholesky decomposition of a symmetric matrix.
+ *
+ * Returns lower-triangular L such that L * L^T ≈ matrix. Real-world correlation
+ * matrices assembled from pairwise estimates are often not positive-definite;
+ * rather than producing NaNs, we floor the diagonal at a small positive value,
+ * guard divisions, and sanitize any non-finite entry to 0. The result stays
+ * finite and approximately reproduces the intended correlations.
  */
 export function cholesky(matrix: number[][]): number[][] {
   const n = matrix.length;
+  const EPS = 1e-9;
   const L: number[][] = Array.from({ length: n }, () => new Array(n).fill(0));
   for (let i = 0; i < n; i++) {
     for (let j = 0; j <= i; j++) {
@@ -73,10 +78,16 @@ export function cholesky(matrix: number[][]): number[][] {
       for (let k = 0; k < j; k++) sum += L[i][k] * L[j][k];
       if (i === j) {
         const d = matrix[i][i] - sum;
-        L[i][j] = d > 0 ? Math.sqrt(d) : 1e-9;
+        // Modified Cholesky: a non-positive pivot means the matrix is not
+        // positive-definite. Set the pivot to 0 (rather than a tiny floor,
+        // which would inflate later off-diagonal divisions into a runaway) so
+        // this component contributes no independent variance.
+        L[i][j] = d > EPS ? Math.sqrt(d) : 0;
       } else {
-        L[i][j] = (matrix[i][j] - sum) / (L[j][j] || 1e-9);
+        const denom = L[j][j];
+        L[i][j] = denom > EPS ? (matrix[i][j] - sum) / denom : 0;
       }
+      if (!Number.isFinite(L[i][j])) L[i][j] = 0;
     }
   }
   return L;
@@ -95,7 +106,10 @@ export function correlatedNormals(
   for (let i = 0; i < n; i++) {
     let s = 0;
     for (let j = 0; j <= i; j++) s += choleskyL[i][j] * z[j];
-    out[i] = s;
+    // Clamp to a wide but finite range; standard-normal draws are ~unit
+    // variance, so ±8 keeps genuine tail events while preventing any residual
+    // numerical blow-up from a near-degenerate correlation matrix.
+    out[i] = Math.max(-8, Math.min(8, s));
   }
   return out;
 }

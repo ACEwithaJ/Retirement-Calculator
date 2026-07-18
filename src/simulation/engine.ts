@@ -10,6 +10,8 @@ import type { TaxEngine, TaxableIncome } from '../taxes';
 import { totalAnnualFee } from '../fees/fees';
 import { findCountry } from '../countries/profiles';
 import { portfolioArithmeticReturn } from '../allocations/portfolio';
+import { findAllocation } from '../allocations/presets';
+import type { AssetAllocation } from '../types';
 import { resolveAllocation } from './allocationSchedule';
 import {
   availableAccounts,
@@ -17,6 +19,14 @@ import {
   type AccountState,
 } from './withdrawalOrder';
 import type { ReturnGenerator } from './returns';
+import {
+  applyReturns,
+  buildHoldings,
+  holdingsValue,
+  rebalance,
+  syncHoldings,
+  type Holdings,
+} from './rebalance';
 import { SeededRandom } from '../utils/random';
 
 const SURVIVOR_SPENDING_FACTOR = 0.75;
@@ -29,12 +39,23 @@ function initAccounts(scenario: Scenario): AccountState[] {
     value: a.balance,
     basisFraction:
       a.taxClass === 'taxable'
-        ? Math.min(1, (a.costBasis ?? a.balance) / Math.max(1, a.balance))
-        : a.taxClass === 'cash'
-          ? 1
-          : 0,
+      ? Math.min(1, (a.costBasis ?? a.balance) / Math.max(1, a.balance))
+      : a.taxClass === 'cash'
+        ? 1
+        : 0,
     availabilityAge: a.availabilityAge,
   }));
+}
+
+/** Resolve an account's own target allocation (used in 'fixed' glidepath mode). */
+function accountBaseAllocation(scenario: Scenario, accountId: string): AssetAllocation {
+  const acct = scenario.accounts.find((a) => a.id === accountId);
+  const fallback =
+    findAllocation(scenario.allocations, scenario.allocationPolicy.allocationId) ??
+    scenario.allocations[0];
+  if (!acct) return fallback;
+  if (acct.allocation) return acct.allocation;
+  return findAllocation(scenario.allocations, acct.allocationId ?? '') ?? fallback;
 }
 
 /** Person1 anchor age for the scenario. */
@@ -256,6 +277,19 @@ export function simulatePath(
   const taxEngine = createTaxEngine(scenario.taxes);
   const strategy = createStrategy(scenario.strategy);
 
+  // Per-account asset-class holdings, so rebalancing modes and per-account
+  // allocations affect returns distinctly (see rebalance.ts).
+  const baseAlloc: Record<string, AssetAllocation> = {};
+  const holdings: Record<string, Holdings> = {};
+  for (const s of states) {
+    baseAlloc[s.id] = accountBaseAllocation(scenario, s.id);
+    holdings[s.id] = buildHoldings(s.value, baseAlloc[s.id]);
+  }
+  const classIds = scenario.assumptions.assetClasses.map((a) => a.id);
+  const rebalanceMode = scenario.allocationPolicy.rebalance;
+  const rebalanceBand = scenario.allocationPolicy.rebalanceThreshold ?? 0.05;
+  const glidepathActive = scenario.allocationPolicy.glidepath !== 'fixed';
+
   const startAge = anchorAge(scenario);
   const endAge = horizonEndAge(scenario);
   const retAge = scenario.household.people[0]?.retirementAge ?? 65;
@@ -309,7 +343,8 @@ export function simulatePath(
       retAge,
       endAge,
     );
-    const yr = generator.year(rng, y, alloc);
+    const assets = generator.yearAssets(rng, y, classIds);
+    const inflation = assets.inflation;
 
     const totalStart = states.reduce((a, s) => a + s.value, 0);
     if (isRetired && portfolioAtRetirement === 0) portfolioAtRetirement = totalStart;
@@ -384,7 +419,7 @@ export function simulatePath(
         age,
         y,
         inflationIndex,
-        yr.inflation,
+        inflation,
         countryId,
       );
       grossWithdrawal = solved.gross;
@@ -401,16 +436,31 @@ export function simulatePath(
 
     // Fees on the post-withdrawal balance (real).
     const postWithdrawal = states.reduce((a, s) => a + s.value, 0);
-    if (postWithdrawal > 0) {
-      const fee = totalAnnualFee(postWithdrawal, scenario.fees);
-      lifetimeFees += fee;
-      const factor = Math.max(0, 1 - fee / postWithdrawal);
+    const feeThisYear = postWithdrawal > 0 ? totalAnnualFee(postWithdrawal, scenario.fees) : 0;
+    if (feeThisYear > 0) {
+      lifetimeFees += feeThisYear;
+      const factor = Math.max(0, 1 - feeThisYear / postWithdrawal);
       for (const s of states) s.value *= factor;
     }
 
-    // Apply the year's real return to every account (portfolio-level, annually
-    // rebalanced model).
-    for (const s of states) s.value *= 1 + yr.real;
+    // Reconcile holdings to each account's post-cash-flow value, then apply the
+    // year's per-asset-class real returns and rebalance per the policy. This is
+    // what makes 'annual', 'threshold', and 'none' rebalancing — and per-account
+    // allocations — produce distinct outcomes.
+    let preReturn = 0;
+    let postReturn = 0;
+    for (const s of states) {
+      const h = holdings[s.id];
+      syncHoldings(h, s.value, baseAlloc[s.id]);
+      preReturn += holdingsValue(h);
+      applyReturns(h, assets.real);
+      s.value = holdingsValue(h);
+      postReturn += s.value;
+      const target = glidepathActive ? alloc : baseAlloc[s.id];
+      rebalance(h, target, rebalanceMode, rebalanceBand);
+    }
+    // Portfolio real return this year (investment only, net of the classes held).
+    const realReturn = preReturn > 0 ? postReturn / preReturn - 1 : 0;
 
     const endBalance = states.reduce((a, s) => a + s.value, 0);
 
@@ -442,7 +492,7 @@ export function simulatePath(
         income,
         grossWithdrawal,
         taxes,
-        fees: postWithdrawal > 0 ? totalAnnualFee(postWithdrawal, scenario.fees) : 0,
+        fees: feeThisYear,
         netSpending,
         desiredSpending: desired,
         essentialSpending: essential,
@@ -474,9 +524,9 @@ export function simulatePath(
       });
     }
 
-    prevRealReturn = yr.real;
+    prevRealReturn = realReturn;
     trailingPortfolio.push(endBalance);
-    inflationIndex *= 1 + yr.inflation;
+    inflationIndex *= 1 + inflation;
   }
 
   if (!Number.isFinite(minRealSpending)) minRealSpending = 0;
