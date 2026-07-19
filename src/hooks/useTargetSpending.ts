@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Scenario } from '../types';
-import { solveSustainableSpending } from '../simulation/solver';
+import { solveTargetSpending } from '../workers/simulationClient';
 
 export const SUCCESS_TARGET = 0.85;
 
@@ -12,14 +12,13 @@ export const SUCCESS_TARGET = 0.85;
  * affordable, and we round the result to the nearest $100 so the headline does
  * not imply false precision.
  *
- * NOTE: this solve is computationally heavy (~seconds) and runs on scenario
- * change; it is debounced to fire AFTER the live results preview so the
- * readiness summary paints first. A future improvement is to move it off the
- * main thread (Web Worker) or compute it lazily on demand.
+ * NOTE: this solve is computationally heavy (~seconds). It runs in a Web Worker
+ * (see simulationClient) so it never blocks the UI, and is debounced so rapid
+ * edits don't queue up (each new request supersedes the previous one).
  */
 const SEARCH_TRIALS = 400;
 const TOLERANCE = 250;
-const DEBOUNCE_MS = 450;
+const DEBOUNCE_MS = 300;
 
 /** Round a monthly figure to the nearest $100 to avoid implying MC precision. */
 function roundHeadline(monthly: number): number {
@@ -35,14 +34,15 @@ export function useTargetSpending(scenario: Scenario): { monthly: number | null;
     setMonthly(null);
     setSolving(true);
     const timer = window.setTimeout(() => {
-      const solved = solveSustainableSpending(scenario, SUCCESS_TARGET, 'desiredFunded', {
-        searchTrials: SEARCH_TRIALS,
-        tolerance: TOLERANCE,
-      });
-      if (!cancelled) {
-        setMonthly(roundHeadline(solved.monthlySpending));
-        setSolving(false);
-      }
+      solveTargetSpending(scenario, SUCCESS_TARGET, 'desiredFunded', SEARCH_TRIALS, TOLERANCE)
+        .then((solved) => {
+          // `null` means a newer request superseded this one.
+          if (!cancelled && solved !== null) {
+            setMonthly(roundHeadline(solved));
+            setSolving(false);
+          }
+        })
+        .catch(() => { if (!cancelled) setSolving(false); });
     }, DEBOUNCE_MS);
     return () => { cancelled = true; window.clearTimeout(timer); };
   }, [scenario]);

@@ -11,7 +11,7 @@ import {
 import type { ReactNode } from 'react';
 import type { Scenario, SimulationResults } from '../types';
 import { defaultScenario } from '../models/defaults';
-import { runSimulation } from '../simulation/monteCarlo';
+import { previewSimulation } from '../workers/simulationClient';
 import { validateScenario, type ValidationIssue } from '../models/validation';
 import {
   deleteScenario as deleteFromStore,
@@ -60,19 +60,18 @@ export function ScenarioProvider({ children }: { children: ReactNode }): JSX.Ele
 
   const issues = useMemo(() => validateScenario(scenario), [scenario]);
 
-  /** Run a (possibly capped) simulation off the main paint. */
+  /** Run a (possibly capped) simulation in the Web Worker (off the main thread). */
   const run = useCallback((s: Scenario, cap: number) => {
     setRunning(true);
-    // Defer so the spinner can paint before the (synchronous) heavy compute.
-    window.setTimeout(() => {
-      const trials = Math.min(s.simulation.trials, cap);
-      try {
-        const res = runSimulation({ ...s, simulation: { ...s.simulation, trials } });
-        setResults(res);
-      } finally {
-        setRunning(false);
-      }
-    }, 20);
+    previewSimulation(s, cap)
+      .then((res) => {
+        // `null` means a newer request superseded this one; keep waiting for it.
+        if (res) {
+          setResults(res);
+          setRunning(false);
+        }
+      })
+      .catch(() => setRunning(false));
   }, []);
 
   // Auto-run a capped live preview when the scenario changes (debounced).
