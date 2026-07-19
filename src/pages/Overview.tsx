@@ -2,7 +2,7 @@ import { useScenario } from '../state/ScenarioContext';
 import { Disclaimer, Panel, StatCard } from '../components/ui';
 import { formatCompactCurrency, formatCurrency, formatPercent } from '../utils/format';
 import { sampleScenarios } from '../models/scenarios';
-import { READINESS_META } from './readiness';
+import { READINESS_META, returnMethodNote } from './readiness';
 import { SUCCESS_TARGET, useTargetSpending } from '../hooks/useTargetSpending';
 
 export function OverviewPage({ onNavigate }: { onNavigate: (r: string) => void }): JSX.Element {
@@ -23,15 +23,16 @@ export function OverviewPage({ onNavigate }: { onNavigate: (r: string) => void }
           <div className="muted small">Retirement readiness</div>
           <div className="status" style={{ color: meta.color }}>{meta.label}</div>
           <div className="muted" style={{ marginTop: 6 }}>{results.primaryRisk}</div>
+          <div className="muted small" style={{ marginTop: 6 }}>{returnMethodNote(scenario.assumptions.returnModel.method)}</div>
         </div>
       )}
 
       <div className="grid grid-4" style={{ marginBottom: 18 }}>
         <StatCard
           label="Chance of success"
-          value={results ? formatPercent(results.metrics.desiredFunded) : '—'}
+          value={results ? formatPercent(results.metrics.desiredFunded, 0) : '—'}
           sub={results ? (results.metrics.desiredFunded >= SUCCESS_TARGET ? 'At or above the 85% planning target' : 'Below the 85% planning target') : undefined}
-          tip="The share of simulations that fully fund desired spending every retirement year. 85% is the planning target used by this calculator, not a guarantee."
+          tip="The share of simulations that fully fund desired spending in EVERY retirement year — a stricter test than most calculators. FIRECalc/Trinity-style tools instead report 'portfolio ended above zero'; see 'P(portfolio positive)' below for that comparable figure."
         />
         <StatCard
           label="Monthly spending at 85%"
@@ -45,13 +46,13 @@ export function OverviewPage({ onNavigate }: { onNavigate: (r: string) => void }
         />
         <StatCard
           label="P(essential funded)"
-          value={results ? formatPercent(results.metrics.essentialFunded) : '—'}
+          value={results ? formatPercent(results.metrics.essentialFunded, 0) : '—'}
           tip="Share of simulated futures in which your essential spending floor is always covered."
         />
       </div>
 
       <div className="grid grid-4" style={{ marginBottom: 18 }}>
-        <StatCard label="P(portfolio positive)" value={results ? formatPercent(results.metrics.portfolioSurvival) : '—'} />
+        <StatCard label="P(portfolio positive)" value={results ? formatPercent(results.metrics.portfolioSurvival, 0) : '—'} tip="Share of futures where the portfolio never hits zero. This is the definition FIRECalc, cFIREsim, and the Trinity Study use — use it when comparing to those tools." />
         <StatCard label="Median ending wealth" value={results ? formatCompactCurrency(results.metrics.medianEndingWealth) : '—'} />
         <StatCard label="Worst-decile ending" value={results ? formatCompactCurrency(results.metrics.p10EndingWealth) : '—'} />
         <StatCard label="Funded ratio" value={results ? results.fundedRatio.toFixed(2) : '—'} tip="Assets ÷ present value of net withdrawals. Depends on the discount rate; use as one indicator among many." />
