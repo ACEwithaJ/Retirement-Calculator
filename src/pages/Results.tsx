@@ -3,7 +3,7 @@ import { useScenario } from '../state/ScenarioContext';
 import { HowCalculated, Panel, StatCard } from '../components/ui';
 import { BandChart, SimpleBarChart, TwoLineChart } from '../components/charts';
 import { AllIssues } from './issues';
-import { READINESS_META } from './readiness';
+import { READINESS_META, returnMethodNote } from './readiness';
 import { formatCompactCurrency, formatCurrency, formatPercent } from '../utils/format';
 import { solveSpendingCurve } from '../simulation/solver';
 import { resultsToCSV, downloadText } from '../utils/export';
@@ -70,14 +70,15 @@ export function ResultsPage(): JSX.Element {
           <div className="muted small">Retirement readiness · {results.trials.toLocaleString()} trials · seed {results.seed}</div>
           <div className="status" style={{ color: meta.color }}>{meta.label}</div>
           <div className="muted" style={{ marginTop: 6 }}><strong>Most important risk:</strong> {results.primaryRisk}</div>
+          <div className="muted small" style={{ marginTop: 6 }}>{returnMethodNote(scenario.assumptions.returnModel.method)}</div>
         </div>
       )}
 
       <div className="grid grid-4">
-        <StatCard label="Chance of success" value={formatPercent(results.metrics.desiredFunded)} sub={results.metrics.desiredFunded >= SUCCESS_TARGET ? 'Meets the 85% target' : 'Below the 85% target'} tip="Chance that desired spending is fully funded in every retirement year." />
-        <StatCard label="Monthly spending at 85%" value={targetSpending.monthly === null ? (targetSpending.solving ? 'Calculating…' : '—') : formatCurrency(targetSpending.monthly, cur)} />
+        <StatCard label="Chance of success" value={formatPercent(results.metrics.desiredFunded, 0)} sub={results.metrics.desiredFunded >= SUCCESS_TARGET ? 'Meets the 85% target' : 'Below the 85% target'} tip="Chance that desired spending is fully funded in EVERY retirement year — stricter than the 'portfolio ended above zero' definition used by FIRECalc/Trinity. See 'Portfolio remains positive' in Success metrics for that comparable figure." />
+        <StatCard label="Monthly spending at 85%" value={targetSpending.monthly === null ? (targetSpending.solving ? 'Calculating…' : '—') : formatCurrency(targetSpending.monthly, cur)} tip="Approximate max desired monthly spending reaching an 85% chance of full funding. Solved with a reduced-trial search, so treat it as a rounded estimate." />
         <StatCard label="Desired monthly" value={formatCurrency(scenario.spending.desiredMonthly, cur)} />
-        <StatCard label="P(essential funded)" value={formatPercent(results.metrics.essentialFunded)} tip="Probability the essential floor is covered every year." />
+        <StatCard label="P(essential funded)" value={formatPercent(results.metrics.essentialFunded, 0)} tip="Probability the essential floor is covered every year." />
       </div>
       <div className="grid grid-4" style={{ marginTop: 14 }}>
         <StatCard label="Median ending wealth" value={formatCompactCurrency(results.metrics.medianEndingWealth)} />

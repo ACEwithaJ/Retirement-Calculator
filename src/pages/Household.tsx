@@ -47,7 +47,7 @@ export function HouseholdPage(): JSX.Element {
             ]}
           />
           <NumberField label="Dependents" value={h.dependents} min={0} onChange={(v) => updateDeep((d) => { d.household.dependents = v; })} />
-          <NumberField label="Planning end age" value={h.planningEndAge ?? 100} min={1} max={120} onChange={(v) => updateDeep((d) => { d.household.planningEndAge = v; })} tip="The horizon of the plan. For early retirement, model to 100–105 to stress longevity." />
+          <NumberField label="Planning end age" value={h.planningEndAge ?? 100} min={1} max={120} onChange={(v) => updateDeep((d) => { d.household.planningEndAge = v; })} tip="The horizon of the plan, inclusive — e.g. planning to 95 models spending through age 95. For early retirement, model to 100–105 to stress longevity." />
           <SelectField label="Current country" value={h.currentCountryId} onChange={(v) => updateDeep((d) => { d.household.currentCountryId = v; })} options={countryOpts} />
           <SelectField label="Retirement country" value={h.retirementCountryId} onChange={(v) => updateDeep((d) => { d.household.retirementCountryId = v; })} options={countryOpts} />
           <TextField label="Base reporting currency" value={h.baseCurrency} onChange={(v) => updateDeep((d) => { d.household.baseCurrency = v; })} />

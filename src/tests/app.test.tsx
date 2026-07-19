@@ -26,11 +26,15 @@ describe('App smoke test', () => {
   it('computes and displays live results for the default scenario', async () => {
     render(<App />);
     // The live preview runs after a debounce; the readiness banner appears.
+    // The readiness banner comes from the live results preview. The Overview
+    // page also kicks off an expensive 85%-spending solve on mount; in the
+    // browser both run in a Web Worker, but under jsdom they run synchronously,
+    // so allow a generous window for the preview to compute and paint.
     await waitFor(
       () => {
         expect(screen.getByText(/Retirement readiness/i)).toBeInTheDocument();
       },
-      { timeout: 5000 },
+      { timeout: 20000 },
     );
-  });
+  }, 30000);
 });
